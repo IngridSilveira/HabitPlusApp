@@ -7,14 +7,17 @@
 
 import SwiftUI
 
-struct CustomTextFieldStyle: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+struct CustomTextFieldStyle: TextFieldStyle {
+    public func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding(.vertical, 8)
+            .padding(.horizontal, 15)
+            .overlay(RoundedRectangle(cornerRadius: 10.0).stroke(Color.gray, lineWidth: 2))
     }
 }
 
-struct CustomTextFieldStyle_Previews: PreviewProvider {
-    static var previews: some View {
-        CustomTextFieldStyle()
-    }
-}
+//struct CustomTextFieldStyle_Previews: PreviewProvider {
+//    static var previews: some View {
+//        CustomTextFieldStyle()
+//    }
+//}aaa

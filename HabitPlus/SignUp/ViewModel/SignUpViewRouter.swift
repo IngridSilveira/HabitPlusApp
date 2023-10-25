@@ -5,4 +5,11 @@
 //  Created by userext on 11/08/23.
 //
 
-import Foundation
+import SwiftUI
+
+enum SignUpViewRouter {
+    static func makeHomeView() -> some View {
+        let viewModel = HomeViewModel()
+        return HomeView(viewModel: viewModel)
+    }
+}

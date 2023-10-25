@@ -6,3 +6,10 @@
 //
 
 import Foundation
+
+class HomeViewModel: ObservableObject {
+    
+    @Published var uiState: HomeUIState = .none
+    
+    
+}

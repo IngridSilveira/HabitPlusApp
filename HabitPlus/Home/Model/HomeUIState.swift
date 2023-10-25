@@ -6,3 +6,7 @@
 //
 
 import Foundation
+
+enum HomeUIState {
+    case none
+}
