@@ -46,11 +46,22 @@ class SignUpViewModel: ObservableObject {
                                                    document: document,
                                                    phone: phone,
                                                    birthday: birthday,
-                                                   gender: gender.index))
-        
-        //DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-          //  self.uiState = .success
-            //self.publisher.send(true)
+                                                   gender: gender.index)) { (successResponse, errorResponse) in
+            if let error = errorResponse {
+                DispatchQueue.main.async {
+                    // Main Thread
+                    self.uiState = .error(error.detail)
+                }
+            }
+            if let success = successResponse {
+                DispatchQueue.main.async {
+                self.publisher.send(success)
+                    if success {
+                        self.uiState = .success
+                    }
+                }
+            }
+        }
     }
 }
 
