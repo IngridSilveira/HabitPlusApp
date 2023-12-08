@@ -10,10 +10,6 @@ import Combine
 
 class SignUpViewModel: ObservableObject {
     
-    var publisher: PassthroughSubject<Bool, Never>!
-    
-    @Published var uiState: SignUpUIState = .none
-    
     @Published var fullName: String = ""
     @Published var email: String = ""
     @Published var password: String = ""
@@ -21,6 +17,25 @@ class SignUpViewModel: ObservableObject {
     @Published var document: String = ""
     @Published var phone: String = ""
     @Published var gender = Gender.male
+    
+    var publisher: PassthroughSubject<Bool, Never>!
+    
+    private var cancellableSignUp: AnyCancellable?
+    private var cancellableSignIn: AnyCancellable?
+    
+    @Published var uiState: SignUpUIState = .none
+    
+    private let interactor: SignUpInteractor
+    
+    // construtor com dependencia do interactor
+    init(interactor: SignUpInteractor) {
+        self.interactor = interactor
+    }
+    
+    deinit {
+        cancellableSignIn?.cancel()
+        cancellableSignUp?.cancel()
+    }
     
     func signUp() {
         self.uiState = .loading
@@ -40,43 +55,56 @@ class SignUpViewModel: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd"
         let birthday = formatter.string(from: dateFormatted)
         
-        WebService.postUser(request: SignUpRequest(fullName: fullName,
-                                                   email: email,
-                                                   password: password,
-                                                   document: document,
-                                                   phone: phone,
-                                                   birthday: birthday,
-                                                   gender: gender.index)) { (successResponse, errorResponse) in
-            if let error = errorResponse {
-                DispatchQueue.main.async {
-                    // Main Thread
-                    self.uiState = .error(error.detail)
+        // Main Thread
+        let signUpRequest = SignUpRequest(fullName: fullName,
+                                          email: email,
+                                          password: password,
+                                          document: document,
+                                          phone: phone,
+                                          birthday: birthday,
+                                          gender: gender.index)
+        
+        cancellableSignUp = interactor.postUser(signUpRequest: signUpRequest)
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                switch (completion) {
+                case .failure(let appError):
+                    self.uiState = .error(appError.message)
+                    break
+                case .finished:
+                    break
                 }
-            }
-            if let success = successResponse {
-                WebService.login(request: SignInRequest(email: self.email,
-                                                        password: self.password)) { (successResponse, errorResponse) in
-                    if let errorSignIn = errorResponse {
-                        DispatchQueue.main.async {
-                            // Main Thread
-                            self.uiState = .error(errorSignIn.detail.message)
-                        }
-                    }
-                    if let successSignIn = successResponse {
-                        DispatchQueue.main.async {
-                            print(successSignIn)
-                            self.publisher.send(success)
-                            self.uiState = .success
+            } receiveValue: { created in
+                // se tiver criado -> login
+                if (created) {
+                    // self pois estamos usando uma variavel interna
+                    self.cancellableSignIn = self.interactor.login(signInRequest: SignInRequest(email: self.email, password: self.password))
+                        .receive(on: DispatchQueue.main)
+                        .sink { completion in
+                            switch(completion) {
+                            case .failure(let appError):
+                                self.uiState = .error(appError.message)
+                                break
+                            case .finished:
+                                break
+                            }
+                        } receiveValue: { success in
+                            print(created)
                             
+                            let auth = UserAuth(idToken: success.accessToken,
+                                                refreshToken: success.refreshToken,
+                                                expires: Date().timeIntervalSince1970 + Double(success.expires), // horario na hora da autentificação + 3600seg
+                                                tokenType: success.tokenType)
+                            self.interactor.insertAuth(userAuth: auth)
+                            
+                            self.publisher.send(created)
+                            self.uiState = .success
                         }
-                    }
                 }
-                
-                
             }
-        }
     }
 }
+
 
 extension SignUpViewModel {
     func homeView() -> some View {

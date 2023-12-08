@@ -63,7 +63,7 @@ extension SplashView {
 struct SplashView_Previews: PreviewProvider {
     static var previews: some View {
         ForEach(ColorScheme.allCases, id: \.self) {
-            SplashView(viewModel: SplashViewModel())
+            SplashView(viewModel: SplashViewModel(interactor: SplashInteractor()))
                 .preferredColorScheme($0)
         }
     }
